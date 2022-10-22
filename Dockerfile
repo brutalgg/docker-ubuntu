@@ -1,19 +1,26 @@
-FROM ubuntu:focal
+FROM --platform=linux/amd64 ubuntu:22.04 as s6-builder
+ENV DEBIAN_FRONTEND="noninteractive"
+
+ARG S6_OVERLAY_VERSION=v3.1.2.1 
+ARG S6_OVERLAY_ARCH=x86_64
+
+ADD ["https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz", "/tmp"]
+RUN apt-get update && apt-get install -y xz-utils && mkdir -p /tmp/s6
+RUN tar xf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz -C /tmp/s6
+
+FROM --platform=linux/amd64 ubuntu:22.04
 
 LABEL maintainer="brutalgg"
+ENV DEBIAN_FRONTEND="noninteractive" 
+ENV LANGUAGE="C.UTF-8" 
+ENV LANG="C.UTF-8" 
+ENV LC_ALL="C.UTF-8" 
+ENV TZ="America/New_York" 
+ENV TERM="xterm"
 
-# set environment variables
-ARG DEBIAN_FRONTEND="noninteractive"
-ARG S6_OVERLAY_VERSION=v2.2.0.3 
-ARG S6_OVERLAY_ARCH=amd64
-ENV LANGUAGE="C.UTF-8" LANG="C.UTF-8" LC_ALL="C.UTF-8" TZ="America/New_York" TERM="xterm"
-
-ADD ["https://github.com/just-containers/s6-overlay/releases/download/${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz", "/tmp"]
+COPY --from=s6-builder /tmp/s6 /
 
 RUN \
-  # Extract S6 overlay
-  tar xzf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz -C / --exclude='./bin' && \
-  tar xzf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.gz -C /usr ./bin && \
   # Update and get dependencies
   echo "**** install packages ****" && \
   apt-get update && \
